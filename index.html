@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Whack-a-Mole Game</title>
+    <!-- Aggiungi lo script dell'API Telegram -->
+    <script src="https://telegram.org/js/games.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 20px;
+            touch-action: manipulation;
+        }
+        
+        h1 {
+            color: #333;
+        }
+        
+        .game-container {
+            max-width: 500px;
+            margin: 0 auto;
+            background-color: #8bc34a;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            font-size: 20px;
+            font-weight: bold;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-gap: 10px;
+        }
+        
+        .hole {
+            background-color: #5d4037;
+            height: 100px;
+            border-radius: 50%;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .mole {
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="%23795548"/><circle cx="35" cy="40" r="5" fill="%23fff"/><circle cx="65" cy="40" r="5" fill="%23fff"/><path d="M 40 60 Q 50 70 60 60" stroke="%23fff" stroke-width="3" fill="none"/></svg>');
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            bottom: -100%;
+            transition: bottom 0.1s;
+            cursor: pointer;
+        }
+        
+        .mole.active {
+            bottom: 0;
+        }
+        
+        button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 20px 2px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>Whack-a-Mole!</h1>
+        
+        <div class="game-info">
+            <div>Score: <span id="score">0</span></div>
+            <div>Time: <span id="time">30</span>s</div>
+        </div>
+        
+        <div class="grid">
+            <div class="hole"><div class="mole"></div></div>
+            <div class="hole"><div class="mole"></div></div>
+            <div class="hole"><div class="mole"></div></div>
+            <div class="hole"><div class="mole"></div></div>
+            <div class="hole"><div class="mole"></div></div>
+            <div class="hole"><div class="mole"></div></div>
+            <div class="hole"><div class="mole"></div></div>
+            <div class="hole"><div class="mole"></div></div>
+            <div class="hole"><div class="mole"></div></div>
+        </div>
+        
+        <button id="start-button">Start Game</button>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const holes = document.querySelectorAll('.hole');
+            const moles = document.querySelectorAll('.mole');
+            const scoreDisplay = document.getElementById('score');
+            const timeDisplay = document.getElementById('time');
+            const startButton = document.getElementById('start-button');
+            
+            let score = 0;
+            let timeLeft = 30;
+            let gameTimer;
+            let moleTimer;
+            let isPlaying = false;
+            
+            // Add event listeners to moles
+            moles.forEach(mole => {
+                mole.addEventListener('click', whack);
+            });
+            
+            // Start game when button is clicked
+            startButton.addEventListener('click', startGame);
+            
+            function startGame() {
+                if (isPlaying) return;
+                
+                isPlaying = true;
+                score = 0;
+                timeLeft = 30;
+                scoreDisplay.textContent = score;
+                timeDisplay.textContent = timeLeft;
+                startButton.textContent = 'Game In Progress';
+                startButton.disabled = true;
+                
+                // Start the countdown
+                gameTimer = setInterval(() => {
+                    timeLeft--;
+                    timeDisplay.textContent = timeLeft;
+                    
+                    if (timeLeft <= 0) {
+                        endGame();
+                    }
+                }, 1000);
+                
+                // Start showing moles
+                showMole();
+            }
+            
+            function showMole() {
+                // Hide all moles first
+                moles.forEach(mole => {
+                    mole.classList.remove('active');
+                });
+                
+                // Select a random hole
+                const randomHoleIndex = Math.floor(Math.random() * holes.length);
+                const mole = moles[randomHoleIndex];
+                
+                // Show the mole
+                mole.classList.add('active');
+                
+                // Set a random time for the mole to appear
+                const randomTime = Math.random() * 1000 + 500; // Between 500ms and 1500ms
+                
+                // Hide the mole after the random time
+                moleTimer = setTimeout(() => {
+                    mole.classList.remove('active');
+                    if (isPlaying) {
+                        showMole();
+                    }
+                }, randomTime);
+            }
+            
+            function whack(e) {
+                if (!isPlaying) return;
+                
+                if (this.classList.contains('active')) {
+                    score++;
+                    scoreDisplay.textContent = score;
+                    this.classList.remove('active');
+                    
+                    // Create a "splat" effect
+                    const splat = document.createElement('div');
+                    splat.style.position = 'absolute';
+                    splat.style.width = '100%';
+                    splat.style.height = '100%';
+                    splat.style.backgroundColor = 'rgba(255, 0, 0, 0.3)';
+                    splat.style.borderRadius = '50%';
+                    this.appendChild(splat);
+                    
+                    // Remove the splat effect after a short time
+                    setTimeout(() => {
+                        this.removeChild(splat);
+                    }, 300);
+                }
+            }
+            
+            function endGame() {
+                isPlaying = false;
+                clearInterval(gameTimer);
+                clearTimeout(moleTimer);
+                
+                // Hide all moles
+                moles.forEach(mole => {
+                    mole.classList.remove('active');
+                });
+                
+                startButton.textContent = 'Play Again';
+                startButton.disabled = false;
+                
+                alert(`Game Over! Your score: ${score}`);
+                
+                // Invia il punteggio a Telegram se il gioco è in esecuzione all'interno di Telegram
+                if (window.TelegramGameProxy) {
+                    TelegramGameProxy.shareScore(score);
+                }
+            }
+            
+            // Inizializza il gioco Telegram se necessario
+            if (window.TelegramGameProxy) {
+                TelegramGameProxy.initGame();
+            }
+        });
+    </script>
+</body>
+</html>
