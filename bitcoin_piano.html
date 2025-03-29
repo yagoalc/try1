@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pianoforte Virtuale Bitcoin</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1, h2 {
+            color: #2c3e50;
+        }
+        
+        .piano-container {
+            margin: 30px 0;
+            position: relative;
+            height: 200px;
+            background-color: #222;
+            border-radius: 5px;
+            padding: 10px;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+        
+        .piano-key {
+            display: inline-block;
+            position: relative;
+            height: 180px;
+            width: 30px;
+            margin-right: 2px;
+            background-color: white;
+            border: 1px solid #000;
+            border-radius: 0 0 5px 5px;
+            cursor: pointer;
+            vertical-align: top;
+            transition: background-color 0.2s;
+        }
+        
+        .piano-key.black {
+            background-color: #333;
+            height: 110px;
+            width: 20px;
+            margin-left: -12px;
+            margin-right: -12px;
+            z-index: 2;
+        }
+        
+        .piano-key:hover {
+            opacity: 0.8;
+        }
+        
+        .piano-key:active {
+            opacity: 0.6;
+        }
+        
+        .key-label {
+            color: #666;
+            font-size: 0.8em;
+            position: absolute;
+            bottom: 5px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .btc-info {
+            display: none;
+            position: absolute;
+            top: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            white-space: nowrap;
+        }
+
+        #audio-status {
+            padding: 8px 12px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            margin-top: 10px;
+            border: 1px solid #dee2e6;
+            font-size: 0.9em;
+        }
+        
+        .piano-key.black .key-label {
+            color: white;
+        }
+        
+        .btc-info {
+            position: absolute;
+            top: -30px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 12px;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 5px;
+            border-radius: 3px;
+            display: none;
+        }
+        
+        .controls {
+            margin: 20px 0;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .control-group {
+            margin-bottom: 15px;
+        }
+        
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        .data-display {
+            margin: 20px 0;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        
+        table th, table td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        table th {
+            background-color: #f2f2f2;
+        }
+        
+        .color-cell {
+            width: 20px;
+            height: 20px;
+            display: inline-block;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Pianoforte Virtuale Bitcoin</h1>
+            <p>Visualizzazione degli ordini Bitcoin mappati su una tastiera di pianoforte</p>
+        </header>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label for="btc-volume">Volume BTC:</label>
+                <input type="range" id="btc-volume" min="-4" max="2" step="0.1" value="-2">
+                <span id="btc-volume-display">0.01 BTC</span>
+            </div>
+            
+            <div class="control-group">
+                <label>Modalità di visualizzazione:</label>
+                <label>
+                    <input type="radio" name="display-mode" value="volume" checked> Volume centrale
+                </label>
+                <label>
+                    <input type="radio" name="display-mode" value="range"> Intervallo
+                </label>
+            </div>
+            
+            <div class="control-group">
+                <button id="play-note">Suona Nota Corrispondente</button>
+                <button id="export-data">Esporta Dati</button>
+            </div>
+        </div>
+        
+        <div class="piano-container" id="piano-keyboard">
+            <!-- Le chiavi del pianoforte verranno generate dinamicamente con JavaScript -->
+        </div>
+        
+        <div class="data-display">
+            <h2>Dettagli Nota Selezionata</h2>
+            <div id="note-details">
+                <p>Seleziona una nota sul pianoforte per visualizzare i dettagli</p>
+            </div>
+            
+            <h2>Tabella di Mappatura</h2>
+            <div style="overflow-x: auto;">
+                <table id="mapping-table">
+                    <thead>
+                        <tr>
+                            <th>Nota</th>
+                            <th>MIDI</th>
+                            <th>Volume BTC</th>
+                            <th>Intervallo</th>
+                            <th>Colore</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- I dati della tabella verranno generati dinamicamente con JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Parametri di base
+        const MIN_VOLUME = 0.0001;  // 10k sats
+        const MAX_VOLUME = 100.0;   // 100 BTC
+        const TOTAL_KEYS = 88;
+        
+        // Nomi delle note
+        const NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+        
+        // Dati di mappatura (verranno caricati dal file JSON nella versione completa)
+        let pianoMapping = [];
+        
+        // Elementi DOM
+        const pianoKeyboard = document.getElementById('piano-keyboard');
+        const btcVolumeSlider = document.getElementById('btc-volume');
+        const btcVolumeDisplay = document.getElementById('btc-volume-display');
+        const noteDetailsElement = document.getElementById('note-details');
+        const mappingTableBody = document.getElementById('mapping-table').querySelector('tbody');
+        const playNoteButton = document.getElementById('play-note');
+        
+        // Contesto audio
+        let audioContext;
+        
+        // Inizializza l'applicazione
+        function init() {
+            // Genera la mappatura del pianoforte
+            generatePianoMapping();
+            
+            // Crea la tastiera del pianoforte
+            createPianoKeyboard();
+            
+            // Popola la tabella di mappatura
+            populateMappingTable();
+            
+            // Inizializza il contesto audio
+            initAudio();
+            
+            // Imposta gli event listener
+            setupEventListeners();
+        }
+        
+        // Genera la mappatura del pianoforte (versione semplificata)
+        function generatePianoMapping() {
+            // In una versione completa, questi dati verrebbero caricati dal file JSON generato dallo script Python
+            // Per questo esempio, generiamo una versione semplificata direttamente in JavaScript
+            
+            for (let i = 0; i < TOTAL_KEYS; i++) {
+                // Calcola il nome della nota
+                const midiNumber = 21 + i;  // A0 ha MIDI number 21
+                const noteIndex = (midiNumber - 21) % 12;
+                const octave = Math.floor((midiNumber - 12) / 12);
+                const noteName = NOTES[noteIndex] + octave;
+                
+                // Calcola il volume BTC usando la formula logaritmica
+                const normalizedIndex = i / (TOTAL_KEYS - 1);
+                const volume = Math.exp(normalizedIndex * Math.log(MAX_VOLUME / MIN_VOLUME)) * MIN_VOLUME;
+                
+                // Calcola l'intervallo BTC
+                let lowerBound, upperBound;
+                
+                if (i === 0) {
+                    lowerBound = 0;
+                } else {
+                    const prevVolume = Math.exp((i - 1) / (TOTAL_KEYS - 1) * Math.log(MAX_VOLUME / MIN_VOLUME)) * MIN_VOLUME;
+                    lowerBound = (volume + prevVolume) / 2;
+                }
+                
+                if (i === TOTAL_KEYS - 1) {
+                    upperBound = volume * 1.5;
+                } else {
+                    const nextVolume = Math.exp((i + 1) / (TOTAL_KEYS - 1) * Math.log(MAX_VOLUME / MIN_VOLUME)) * MIN_VOLUME;
+                    upperBound = (volume + nextVolume) / 2;
+                }
+                
+                // Genera il colore (da blu a rosso)
+                const hue = 240 * (1 - normalizedIndex);
+                const hexColor = hslToHex(hue, 90, 50);
+                
+                // Aggiungi alla mappatura
+                pianoMapping.push({
+                    note_name: noteName,
+                    midi_number: midiNumber,
+                    btc_volume: volume,
+                    btc_range: [lowerBound, upperBound],
+                    hex_color: hexColor,
+                    is_black: noteName.includes('#')
+                });
+            }
+        }
+        
+        // Crea la tastiera del pianoforte
+        function createPianoKeyboard() {
+            // Limita a 3 ottave per la visualizzazione (C3-B5)
+            const startKey = 39;  // C3 (MIDI 60 - 21 = 39)
+            const endKey = 75;    // B5
+            
+            for (let i = startKey; i <= endKey; i++) {
+                const keyData = pianoMapping[i];
+                
+                // Crea l'elemento del tasto
+                const keyElement = document.createElement('div');
+                keyElement.className = `piano-key ${keyData.is_black ? 'black' : 'white'}`;
+                keyElement.style.backgroundColor = keyData.hex_color;
+                keyElement.dataset.index = i;
+                
+                // Aggiungi l'etichetta della nota
+                const keyLabel = document.createElement('div');
+                keyLabel.className = 'key-label';
+                keyLabel.textContent = keyData.note_name;
+                keyElement.appendChild(keyLabel);
+                
+                // Aggiungi l'informazione BTC
+                const btcInfo = document.createElement('div');
+                btcInfo.className = 'btc-info';
+                btcInfo.textContent = `${keyData.btc_volume.toFixed(4)} BTC`;
+                keyElement.appendChild(btcInfo);
+                
+                // Aggiungi event listeners
+                keyElement.addEventListener('click', () => selectKey(i));
+                keyElement.addEventListener('mouseover', () => showBtcInfo(btcInfo));
+                keyElement.addEventListener('mouseout', () => hideBtcInfo(btcInfo));
+                
+                // Aggiungi il tasto alla tastiera
+                pianoKeyboard.appendChild(keyElement);
+            }
+        }
+        
+        // Mostra l'informazione BTC
+        function showBtcInfo(infoElement) {
+            infoElement.style.display = 'block';
+        }
+        
+        // Nascondi l'informazione BTC
+        function hideBtcInfo(infoElement) {
+            infoElement.style.display = 'none';
+        }
+        
+        // Seleziona un tasto
+        function selectKey(index) {
+            // Rimuovi la selezione precedente
+            const selectedKeys = document.querySelectorAll('.piano-key.selected');
+            selectedKeys.forEach(key => key.classList.remove('selected'));
+            
+            // Seleziona il nuovo tasto
+            const keyElement = document.querySelector(`.piano-key[data-index="${index}"]`);
+            if (keyElement) {
+                keyElement.classList.add('selected');
+            }
+            
+            // Mostra i dettagli della nota
+            displayNoteDetails(index);
+            
+            // Suona la nota
+            playNote(pianoMapping[index].midi_number);
+        }
+        
+        // Mostra i dettagli della nota
+        function displayNoteDetails(index) {
+            const keyData = pianoMapping[index];
+            
+            noteDetailsElement.innerHTML = `
+                <p><strong>Nota:</strong> ${keyData.note_name}</p>
+                <p><strong>Numero MIDI:</strong> ${keyData.midi_number}</p>
+                <p><strong>Volume BTC:</strong> ${keyData.btc_volume.toFixed(8)} BTC</p>
+                <p><strong>Intervallo BTC:</strong> ${keyData.btc_range[0].toFixed(8)} - ${keyData.btc_range[1].toFixed(8)} BTC</p>
+                <p><strong>Colore:</strong> <span class="color-cell" style="background-color: ${keyData.hex_color}"></span> ${keyData.hex_color}</p>
+            `;
+        }
+        
+        // Popola la tabella di mappatura
+        function populateMappingTable() {
+            // Limita a 3 ottave per la visualizzazione (C3-B5)
+            const startKey = 39;  // C3
+            const endKey = 75;    // B5
+            
+            for (let i = startKey; i <= endKey; i++) {
+                const keyData = pianoMapping[i];
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${keyData.note_name}</td>
+                    <td>${keyData.midi_number}</td>
+                    <td>${keyData.btc_volume.toFixed(8)}</td>
+                    <td>${keyData.btc_range[0].toFixed(8)} - ${keyData.btc_range[1].toFixed(

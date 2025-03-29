@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pianoforte Virtuale Bitcoin</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1, h2 {
+            color: #2c3e50;
+        }
+        
+        .piano-container {
+            margin: 30px 0;
+            position: relative;
+            height: 200px;
+            background-color: #222;
+            border-radius: 5px;
+            padding: 10px;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+        
+        .piano-key {
+            display: inline-block;
+            position: relative;
+            height: 180px;
+            width: 30px;
+            margin-right: 2px;
+            background-color: white;
+            border: 1px solid #000;
+            border-radius: 0 0 5px 5px;
+            cursor: pointer;
+            vertical-align: top;
+            transition: background-color 0.2s;
+        }
+        
+        .piano-key.black {
+            background-color: #333;
+            height: 110px;
+            width: 20px;
+            margin-left: -12px;
+            margin-right: -12px;
+            z-index: 2;
+        }
+        
+        .piano-key:hover {
+            opacity: 0.8;
+        }
+        
+        .piano-key:active {
+            opacity: 0.6;
+        }
+        
+        .piano-key.selected {
+            box-shadow: 0 0 10px 2px rgba(255, 255, 0, 0.7);
+            z-index: 3;
+        }
+        
+        .key-label {
+            color: #666;
+            font-size: 0.8em;
+            position: absolute;
+            bottom: 5px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .btc-info {
+            display: none;
+            position: absolute;
+            top: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            white-space: nowrap;
+        }
+
+        #audio-status {
+            padding: 8px 12px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            margin-top: 10px;
+            border: 1px solid #dee2e6;
+            font-size: 0.9em;
+        }
+        
+        #binance-data {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            border: 1px solid #dee2e6;
+        }
+        
+        #binance-data h3 {
+            margin-top: 0;
+            color: #2c3e50;
+            font-size: 1.2em;
+        }
+        
+        .binance-info {
+            margin-bottom: 15px;
+        }
+        
+        .connection-status {
+            display: flex;
+            align-items: center;
+            font-size: 0.9em;
+        }
+        
+        #connection-indicator {
+            margin-right: 8px;
+            font-size: 1.2em;
+        }
+        
+        #connection-indicator.connected {
+            color: green;
+        }
+        
+        #connection-indicator.disconnected {
+            color: red;
+        }
+        
+        #connection-indicator.connecting {
+            color: orange;
+        }
+        
+        .piano-key.black .key-label {
+            color: white;
+        }
+        
+        .controls {
+            margin: 20px 0;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .control-group {
+            margin-bottom: 15px;
+        }
+        
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        .data-display {
+            margin: 20px 0;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        
+        table th, table td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        table th {
+            background-color: #f2f2f2;
+        }
+        
+        .color-cell {
+            width: 20px;
+            height: 20px;
+            display: inline-block;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Pianoforte Virtuale Bitcoin</h1>
+            <p>Visualizzazione degli ordini Bitcoin mappati su una tastiera di pianoforte</p>
+            <p><strong>Suoni:</strong> Pianoforte per ordini di acquisto (Buy) e Sassofono per ordini di vendita (Sell)</p>
+        </header>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label for="btc-volume">Volume BTC:</label>
+                <input type="range" id="btc-volume" min="-4" max="2" step="0.1" value="-2">
+                <span id="btc-volume-display">0.01 BTC</span>
+            </div>
+            
+            <div class="control-group">
+                <label>Modalità di visualizzazione:</label>
+                <label>
+                    <input type="radio" name="display-mode" value="volume" checked> Volume centrale
+                </label>
+                <label>
+                    <input type="radio" name="display-mode" value="range"> Intervallo
+                </label>
+            </div>
+            
+            <div class="control-group">
+                <button id="play-note">Suona Nota Corrispondente</button>
+                <button id="export-data">Esporta Dati</button>
+            </div>
+
+            <div class="control-group" id="binance-data">
+                <h3>Dati Bitcoin in Tempo Reale (Binance)</h3>
+                <div class="binance-info">
+                    <p><strong>Prezzo attuale:</strong> <span id="btc-price">Caricamento...</span> USDT</p>
+                    <p><strong>Volume dell'ultimo trade:</strong> <span id="btc-trade-volume">Caricamento...</span> BTC</p>
+                    <p><strong>Tipo di ordine:</strong> <span id="order-type">-</span></p>
+                    <p><strong>Nota suonata:</strong> <span id="played-note">-</span></p>
+                </div>
+                <div class="connection-status">
+                    <span id="connection-indicator">⚪</span>
+                    <span id="connection-text">In attesa di connessione...</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="piano-container" id="piano-keyboard">
+            <!-- Le chiavi del pianoforte verranno generate dinamicamente con JavaScript -->
+        </div>
+        
+        <div class="data-display">
+            <h2>Dettagli Nota Selezionata</h2>
+            <div id="note-details">
+                <p>Seleziona una nota sul pianoforte per visualizzare i dettagli</p>
+            </div>
+            
+            <h2>Tabella di Mappatura</h2>
+            <div style="overflow-x: auto;">
+                <table id="mapping-table">
+                    <thead>
+                        <tr>
+                            <th>Nota</th>
+                            <th>MIDI</th>
+                            <th>Volume BTC</th>
+                            <th>Intervallo</th>
+                            <th>Colore</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- I dati della tabella verranno generati dinamicamente con JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Includi il file JavaScript esterno -->
+    <script src="bitcoin_piano_fixed.js"></script>
+</body>
+</html>
